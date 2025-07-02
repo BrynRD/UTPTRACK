@@ -1,0 +1,30 @@
+.ToastRoot {
+    @apply bg-white rounded-lg shadow-lg p-4 border-l-4 border-[#5b36f2] border-t border-r border-b border-gray-100;
+}
+.ToastTitle {
+    @apply text-[#5b36f2] font-semibold text-base mb-0.5;
+}
+.ToastDescription {
+    @apply text-gray-600 text-sm;
+}
+.ToastAction {
+    @apply ml-auto bg-[#eee9fe] text-[#5b36f2] hover:bg-[#e0d8ff] rounded-md px-3 py-1.5 text-xs font-medium transition-colors;
+}
+.ToastViewport {
+    @apply fixed bottom-0 right-0 p-6 z-50 flex flex-col gap-2.5 w-full max-w-sm;
+}
+.ToastRoot[data-state="open"] {
+    @apply animate-slide-in-right;
+}
+.ToastRoot[data-state="closed"] {
+    @apply animate-fade-out;
+}
+.ToastRoot[data-variant="default"] {
+    @apply bg-white border-l-[#5b36f2];
+}
+.ToastRoot[data-variant="destructive"] {
+    @apply bg-white border-l-red-500;
+}
+.ToastRoot[data-variant="success"] {
+    @apply bg-white border-l-green-500;
+}

@@ -1,0 +1,21 @@
+export type EgresadoData = {
+    id: string;
+    codigoEstudiante: string;
+    nombre: string;
+    edad: number;
+    genero: string;
+    carrera: string;
+    sede: string;
+    anoGraduacion: number;
+    estadoLaboral: string;
+    habilidadesTecnicas: string;
+    habilidadesBlandas: string;
+    telefono: string;
+    dni: string;
+    linkedin: string;
+    tiene2fa: boolean;
+    satisfaccionFormacion: number;
+    tiempoPrimerEmpleo: number;
+    createdAt: string;
+    updatedAt: string;
+};

@@ -1,0 +1,1 @@
+npx shadcn@latest add button card avatar input label select tabs progress dropdown-menu

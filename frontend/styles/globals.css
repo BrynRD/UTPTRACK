@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "../components/ui/toast.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Cambiado a color púrpura del login (#5b36f2) */
+    --primary: 257 87% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Color secundario más claro para fondos de elementos activos */
+    --secondary: 257 80% 97%;
+    --secondary-foreground: 257 87% 58%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Acento adaptado para combinar con el esquema morado */
+    --accent: 257 80% 97%;
+    --accent-foreground: 257 87% 58%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+
+    /* Cambiado el anillo a color púrpura */
+    --ring: 257 87% 58%;
+    --radius: 0.5rem;
+
+    /* Sidebar variables adaptadas al esquema morado */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 257 87% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 257 80% 97%;
+    --sidebar-accent-foreground: 257 87% 58%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 257 87% 58%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 257 87% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 257 87% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Definición de animaciones para las notificaciones toast */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Clases de utilidad para las animaciones */
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+.animate-fade-out {
+  animation: fade-out 0.2s ease-in forwards;
+}
+
+@layer components {
+  .container {
+    @apply mx-auto w-full;
+  }
+
+  /* Estilos específicos para botones y elementos interactivos */
+  .btn-primary {
+    @apply bg-[#5b36f2] hover:bg-[#4a2bd0] text-white;
+  }
+
+  /* Estilo para elementos activos/seleccionados */
+  .active-item {
+    @apply bg-[#eee9fe] text-[#5b36f2];
+  }
+
+  /* Estilo para iconos en la sidebar */
+  .sidebar-icon {
+    @apply text-gray-500 group-hover:text-[#5b36f2];
+  }
+
+  /* Estilos para Progress bar */
+  .progress-bar {
+    @apply bg-[#5b36f2];
+  }
+}
