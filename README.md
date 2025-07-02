@@ -129,10 +129,6 @@ UTPTRACK/
 - Exportación en múltiples formatos (PDF, Excel)
 - Visualizaciones interactivas
 
-### Sistema de Encuestas
-- Creación y gestión de encuestas
-- Seguimiento de respuestas
-- Análisis estadístico de resultados
 
 ## 🛠️ Tecnologías Utilizadas
 
