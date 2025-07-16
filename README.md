@@ -129,10 +129,6 @@ UTPTRACK/
 - Exportación en múltiples formatos (PDF, Excel)
 - Visualizaciones interactivas
 
-### Sistema de Encuestas
-- Creación y gestión de encuestas
-- Seguimiento de respuestas
-- Análisis estadístico de resultados
 
 ## 🛠️ Tecnologías Utilizadas
 
@@ -161,17 +157,4 @@ UTPTRACK/
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
-## 📝 Licencia
 
-Este proyecto está bajo la licencia MIT. Ver `LICENSE` para más detalles.
-
-## 📞 Soporte
-
-Para soporte o consultas:
-- 📧 Email: soporte@utptrack.com
-- 📱 Teléfono: +51 1 234-5678
-- 🌐 Web: https://utptrack.com
-
----
-
-Desarrollado con ❤️ para la Universidad Tecnológica del Perú
