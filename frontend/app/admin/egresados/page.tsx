@@ -705,8 +705,8 @@ export default function EgresadosPage() {
                                                 id="new-email"
                                                 type="email"
                                                 value={newGraduate.email}
-                                                onChange={(e) => setNewGraduate({...newGraduate, email: e.target.value})}
-                                                placeholder="correo@ejemplo.com"
+                                                readOnly
+                                                placeholder="correo@utp.edu.pe"
                                             />
                                         </div>
                                         <div className="grid grid-cols-2 items-center gap-4">
@@ -749,7 +749,15 @@ export default function EgresadosPage() {
                                             <Input
                                                 id="new-codigo"
                                                 value={newGraduate.codigoEstudiante}
-                                                onChange={(e) => setNewGraduate({...newGraduate, codigoEstudiante: e.target.value})}
+                                                onChange={(e) => {
+                                                    const codigo = e.target.value;
+                                                    setNewGraduate({
+                                                        ...newGraduate,
+                                                        codigoEstudiante: codigo,
+                                                        email: codigo ? `${codigo}@utp.edu.pe` : "",
+                                                        username: codigo
+                                                    });
+                                                }}
                                                 placeholder="Código único"
                                             />
                                         </div>

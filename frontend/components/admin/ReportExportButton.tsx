@@ -16,12 +16,13 @@ interface ReportExportButtonProps {
     estado?: string
     sede?: string
     onExported?: () => void
+    data?: any[] // Para exportar solo los egresados filtrados (experiencias laborales)
 }
 
 const USE_ABSOLUTE_API = true
 const API_BASE = USE_ABSOLUTE_API ? "http://localhost:8080" : ""
 
-export function ReportExportButton({ reportType, startDate, endDate, career, estado, sede, onExported }: ReportExportButtonProps) {
+export function ReportExportButton({ reportType, startDate, endDate, career, estado, sede, onExported, data }: ReportExportButtonProps) {
     const [isExporting, setIsExporting] = useState(false)
 
     const handleExport = async (format: string) => {
@@ -58,6 +59,12 @@ export function ReportExportButton({ reportType, startDate, endDate, career, est
             if (formattedStartDate) params.append("fechaInicio", formattedStartDate);
             if (formattedEndDate) params.append("fechaFin", formattedEndDate);
             params.append("formato", format);
+
+            // Si es experiencias_laborales y hay data filtrada, enviar los egresadosIds
+            if (reportType === "experiencias_laborales" && Array.isArray(data) && data.length > 0) {
+                const egresadosIds = data.map(item => item.egresado.id).join(",");
+                params.append("egresadosIds", egresadosIds);
+            }
 
             // 1. Exportar y guardar archivo en backend
             const exportRes = await fetch(`${API_BASE}/api/reportes/exportar-y-guardar`, {

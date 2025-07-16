@@ -1,5 +1,6 @@
 package com.utp.utptrack.Models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.util.Date;
 
@@ -25,6 +26,7 @@ public class ExperienciaLaboral {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_egresado")
+    @JsonBackReference
     private Egresado egresado;
 
     // Getters y setters

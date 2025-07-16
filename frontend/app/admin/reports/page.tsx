@@ -29,6 +29,9 @@ export default function AdminReportsPage() {
   const [loadingReports, setLoadingReports] = useState(false)
   const [usuarioId, setUsuarioId] = useState<string | null>(null);
   const [refreshTable, setRefreshTable] = useState(0);
+  const [search, setSearch] = useState("");
+  const [experiencias, setExperiencias] = useState<any[]>([]);
+  const [loadingExperiencias, setLoadingExperiencias] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem("user");
@@ -127,6 +130,22 @@ export default function AdminReportsPage() {
     }
   };
 
+  useEffect(() => {
+    if (reportType !== "experiencias_laborales") return;
+    setLoadingExperiencias(true);
+    const params = new URLSearchParams();
+    if (career !== "all") params.append("carrera", career);
+    if (startDate) params.append("fechaInicio", startDate);
+    if (endDate) params.append("fechaFin", endDate);
+    if (estado !== "all") params.append("estado", estado);
+    if (sede !== "all") params.append("sede", sede);
+    if (search) params.append("search", search);
+    fetch(`/api/reportes/experiencias-laborales?${params.toString()}`)
+      .then(res => res.json())
+      .then(data => setExperiencias(data))
+      .finally(() => setLoadingExperiencias(false));
+  }, [reportType, career, startDate, endDate, estado, sede, search]);
+
   return (
       <div className="flex flex-col min-h-screen">
         <header className="flex h-16 shrink-0 items-center gap-2 border-b">
@@ -190,6 +209,7 @@ export default function AdminReportsPage() {
                       <SelectItem value="genero">Empleabilidad por Género</SelectItem>
                       <SelectItem value="ubicacion">Distribución Geográfica</SelectItem>
                       <SelectItem value="satisfaccion">Satisfacción Laboral</SelectItem>
+                      <SelectItem value="experiencias_laborales">Experiencias Laborales</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -282,6 +302,13 @@ export default function AdminReportsPage() {
                   </div>
                 </div>
 
+                {reportType === "experiencias_laborales" && (
+                  <div className="space-y-3">
+                    <Label htmlFor="search" className="text-sm font-semibold text-gray-700">Buscar por nombre o correo</Label>
+                    <Input id="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Nombre, apellido o correo..." className="border-2 border-gray-200 focus:border-blue-500 rounded-xl h-12" />
+                  </div>
+                )}
+
                 <Button 
                   className="w-full h-12 bg-gradient-to-r from-utp-600 to-utp-500 hover:from-utp-700 hover:to-utp-600 rounded-xl text-white font-semibold shadow-lg transition-all duration-200 hover:shadow-xl" 
                   onClick={handleGenerateReport} 
@@ -352,12 +379,14 @@ export default function AdminReportsPage() {
           </div>
         </div>
 
-          {/* Tabla de reportes guardados usando el componente correcto */}
-          {usuarioId && (
+        {/* Tabla de reportes guardados siempre visible debajo de la vista previa */}
+        {usuarioId && (
+          <div className="mt-8">
             <ReportesGuardadosTable key={refreshTable} usuarioId={usuarioId} />
-          )}
           </div>
-        </div>
+        )}
       </div>
+    </div>
+  </div>
   )
 }

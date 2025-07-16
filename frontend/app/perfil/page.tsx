@@ -3,18 +3,20 @@
 import { useState, useEffect } from "react";
 import {
     User, Mail, Building, Phone, Calendar, MapPin,
-    BookOpen, Award, Briefcase, Edit2, Camera, X, Check
+    BookOpen, Award, Briefcase, Edit2, Camera, X, Check,
+    Globe, Users, Star, TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AnimatedIcon } from "@/components/ui/animated-icon";
 import PerfilSeguridad from "@/components/dashboard/PerfilSeguridad";
+import ExperienciasLaborales from "@/components/ExperienciasLaborales";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { EgresadoData } from "../types/egresado-data";
+import type { EgresadoData, ExperienciaLaboral } from "../types/egresado-data";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 
@@ -32,10 +34,16 @@ export default function DashboardPerfil() {
     const [isEditingBasic, setIsEditingBasic] = useState(false);
     const [isEditingAcademic, setIsEditingAcademic] = useState(false);
     const [isEditingLaboral, setIsEditingLaboral] = useState(false);
+    const [experienciasLaborales, setExperienciasLaborales] = useState<ExperienciaLaboral[]>([]);
+    const [loadingExperiencias, setLoadingExperiencias] = useState(false);
 
     // Inicializa los formularios vacíos
     const [basicForm, setBasicForm] = useState({
         nombre: "",
+        apellido: "",
+        correo: "",
+        edad: 0,
+        genero: "",
         telefono: "",
         dni: "",
         sede: "",
@@ -56,11 +64,38 @@ export default function DashboardPerfil() {
         satisfaccionFormacion: 0,
     });
 
-    // Cuando egresado esté disponible, actualiza los formularios
+    // Función para cargar experiencias laborales
+    const cargarExperienciasLaborales = async () => {
+        if (!egresado?.id) return;
+        
+        setLoadingExperiencias(true);
+        try {
+            const response = await fetch(`http://localhost:8080/api/experiencias-laborales/egresado/${egresado.id}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            
+            if (response.ok) {
+                const experiencias = await response.json();
+                setExperienciasLaborales(experiencias);
+            }
+        } catch (error) {
+            console.error('Error al cargar experiencias laborales:', error);
+        } finally {
+            setLoadingExperiencias(false);
+        }
+    };
+
+    // Cuando egresado esté disponible, actualiza los formularios y carga experiencias
     useEffect(() => {
         if (egresado) {
             setBasicForm({
                 nombre: egresado.nombre || "",
+                apellido: egresado.apellido || "",
+                correo: egresado.correo || "",
+                edad: egresado.edad || 0,
+                genero: egresado.genero || "",
                 telefono: egresado.telefono || "",
                 dni: egresado.dni || "",
                 sede: egresado.sede || "",
@@ -78,6 +113,9 @@ export default function DashboardPerfil() {
                 linkedin: egresado.linkedin || "{}",
                 satisfaccionFormacion: egresado.satisfaccionFormacion || 0,
             });
+            
+            // Cargar experiencias laborales
+            cargarExperienciasLaborales();
         }
     }, [egresado]);
 
@@ -129,6 +167,10 @@ export default function DashboardPerfil() {
                 setEgresado(actualizado); // Actualiza el estado local
                 setBasicForm({
                     nombre: actualizado.nombre,
+                    apellido: actualizado.apellido,
+                    correo: actualizado.correo,
+                    edad: actualizado.edad,
+                    genero: actualizado.genero,
                     telefono: actualizado.telefono,
                     dni: actualizado.dni,
                     sede: actualizado.sede,
@@ -320,16 +362,42 @@ export default function DashboardPerfil() {
                     <CardContent>
                         {isEditingBasic ? (
                             <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
+                                        <label className="text-sm font-medium text-gray-700 mb-1 block">Nombre</label>
                                     <Input
                                         name="nombre"
                                         value={basicForm.nombre}
                                         onChange={handleBasicChange}
-                                        placeholder="Nombre completo"
+                                            placeholder="Nombre"
                                         className="border rounded px-3 py-2 w-full"
                                     />
                                 </div>
                                 <div>
+                                        <label className="text-sm font-medium text-gray-700 mb-1 block">Apellido</label>
+                                        <Input
+                                            name="apellido"
+                                            value={basicForm.apellido}
+                                            onChange={handleBasicChange}
+                                            placeholder="Apellido"
+                                            className="border rounded px-3 py-2 w-full"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700 mb-1 block">Correo Electrónico</label>
+                                        <Input
+                                            name="correo"
+                                            type="email"
+                                            value={basicForm.correo}
+                                            onChange={handleBasicChange}
+                                            placeholder="correo@ejemplo.com"
+                                            className="border rounded px-3 py-2 w-full"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700 mb-1 block">Teléfono</label>
                                     <Input
                                         name="telefono"
                                         value={basicForm.telefono}
@@ -338,7 +406,10 @@ export default function DashboardPerfil() {
                                         className="border rounded px-3 py-2 w-full"
                                     />
                                 </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
+                                        <label className="text-sm font-medium text-gray-700 mb-1 block">DNI</label>
                                     <Input
                                         name="dni"
                                         value={basicForm.dni}
@@ -348,6 +419,35 @@ export default function DashboardPerfil() {
                                     />
                                 </div>
                                 <div>
+                                        <label className="text-sm font-medium text-gray-700 mb-1 block">Edad</label>
+                                        <Input
+                                            name="edad"
+                                            type="number"
+                                            value={basicForm.edad}
+                                            onChange={handleBasicChange}
+                                            placeholder="Edad"
+                                            className="border rounded px-3 py-2 w-full"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700 mb-1 block">Género</label>
+                                        <Select
+                                            value={basicForm.genero}
+                                            onValueChange={(value) => setBasicForm({...basicForm, genero: value})}
+                                        >
+                                            <SelectTrigger className="w-full border rounded px-3 py-2">
+                                                <SelectValue placeholder="Seleccionar género" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="M">Masculino</SelectItem>
+                                                <SelectItem value="F">Femenino</SelectItem>
+                                                <SelectItem value="O">Otro</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700 mb-1 block">Sede Universitaria</label>
                                     <Input
                                         name="sede"
                                         value={basicForm.sede}
@@ -391,7 +491,9 @@ export default function DashboardPerfil() {
                                             <Camera className="h-4 w-4"/>
                                         </button>
                                     </div>
-                                    <h2 className="mt-4 text-xl font-bold text-gray-800">{egresado?.nombre || "Sin nombre"}</h2>
+                                    <h2 className="mt-4 text-xl font-bold text-gray-800">
+                                        {egresado?.nombre} {egresado?.apellido || ""}
+                                    </h2>
                                     <span
                                         className="px-3 py-1 mt-1.5 text-xs font-medium rounded-full bg-[#eee9fe] text-[#5b36f2]">
     {(user?.role === "GRADUATE" || user?.role === "EGRESADO" || user?.role === "ROLE_EGRESADO")
@@ -404,7 +506,7 @@ export default function DashboardPerfil() {
                                 <div className="space-y-3 text-[15px]">
                                     <div className="flex items-center gap-3">
                                         <Mail className="h-4 w-4 text-gray-500"/>
-                                        <span className="text-gray-600">{user?.email || "No disponible"}</span>
+                                        <span className="text-gray-600">{egresado?.correo || user?.email || "No disponible"}</span>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <Phone className="h-4 w-4 text-gray-500" />
@@ -413,6 +515,14 @@ export default function DashboardPerfil() {
                                     <div className="flex items-center gap-3">
                                         <User className="h-4 w-4 text-gray-500" />
                                         <span className="text-gray-600">DNI: {egresado?.dni || "No disponible"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Users className="h-4 w-4 text-gray-500" />
+                                        <span className="text-gray-600">Edad: {egresado?.edad || "No disponible"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Globe className="h-4 w-4 text-gray-500" />
+                                        <span className="text-gray-600">Género: {egresado?.genero === 'M' ? 'Masculino' : egresado?.genero === 'F' ? 'Femenino' : egresado?.genero || "No disponible"}</span>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <MapPin className="h-4 w-4 text-gray-500" />
@@ -436,6 +546,12 @@ export default function DashboardPerfil() {
                                     className="rounded-lg px-4 py-2 transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-utp-600 data-[state=active]:to-utp-500 data-[state=active]:text-white data-[state=active]:shadow-md font-medium"
                                 >
                                     Situación Laboral
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="experiencias"
+                                    className="rounded-lg px-4 py-2 transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-utp-600 data-[state=active]:to-utp-500 data-[state=active]:text-white data-[state=active]:shadow-md font-medium"
+                                >
+                                    Experiencias Laborales
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="seguridad"
@@ -758,10 +874,67 @@ export default function DashboardPerfil() {
                                                         </p>
                                                     </div>
                                                 </div>
-                                            </div>                                        </div>
+                                            </div>
+
+                                            {/* Estadísticas adicionales */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-blue-500 rounded-lg">
+                                                            <TrendingUp className="h-5 w-5 text-white" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-blue-600">Experiencias Laborales</p>
+                                                            <p className="text-2xl font-bold text-blue-800">
+                                                                {experienciasLaborales.length}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2 bg-green-500 rounded-lg">
+                                                            <Star className="h-5 w-5 text-white" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-green-600">Años de Experiencia</p>
+                                                            <p className="text-2xl font-bold text-green-800">
+                                                                {experienciasLaborales.length > 0 ? 
+                                                                    experienciasLaborales.reduce((total, exp) => {
+                                                                        const start = new Date(exp.fechaInicio);
+                                                                        const end = exp.fechaFin ? new Date(exp.fechaFin) : new Date();
+                                                                        const years = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 365);
+                                                                        return total + Math.max(0, years);
+                                                                    }, 0).toFixed(1) : '0'
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                             </TabsContent>
+
+                            <TabsContent value="experiencias">
+                                <div className="space-y-6">
+                                    {loadingExperiencias ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                                            <span className="ml-2 text-gray-600">Cargando experiencias...</span>
+                                        </div>
+                                    ) : (
+                                        <ExperienciasLaborales
+                                            egresadoId={egresado?.id || ""}
+                                            experiencias={experienciasLaborales}
+                                            onExperienciasChange={setExperienciasLaborales}
+                                        />
+                                    )}
+                                </div>
+                            </TabsContent>
+
                               <TabsContent value="seguridad">
                                 <PerfilSeguridad />
                             </TabsContent>

@@ -1,6 +1,7 @@
 package com.utp.utptrack.Models;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.util.Date;
 import java.util.UUID;
@@ -46,6 +47,7 @@ public class Egresado {
     private Usuario usuario;
 
     @OneToMany(mappedBy = "egresado", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<ExperienciaLaboral> experienciasLaborales;
 
     @PrePersist

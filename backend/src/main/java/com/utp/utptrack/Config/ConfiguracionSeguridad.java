@@ -85,6 +85,7 @@ public class ConfiguracionSeguridad {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
                         .requestMatchers("/api/egresados/**").hasAnyRole("ADMIN", "EGRESADO")
+                        .requestMatchers("/api/experiencias-laborales/**").hasAnyRole("ADMIN", "EGRESADO")
                         .requestMatchers("/api/reportes/**").hasAnyRole("ADMIN", "EGRESADO")
                         .requestMatchers("/api/dashboard/**").hasRole("EGRESADO")
                         .anyRequest().authenticated())

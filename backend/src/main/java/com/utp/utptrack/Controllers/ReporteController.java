@@ -29,6 +29,7 @@ import com.utp.utptrack.Models.Egresado;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/reportes")
@@ -165,6 +166,22 @@ public class ReporteController {
                     }
                     reportBytes = reporteService.generarReporteSatisfaccion(datosSatisfaccion, formato);
                     filename = "satisfaccion_" + LocalDate.now().format(DateTimeFormatter.ISO_DATE);
+                    break;
+                case "experiencias_laborales":
+                    List<Map<String, Object>> agrupado = reporteService.obtenerExperienciasLaboralesAgrupadasPorEgresado(
+                        carrera,
+                        estado,
+                        sede,
+                        fechaInicio != null ? fechaInicio.toString() : null,
+                        fechaFin != null ? fechaFin.toString() : null,
+                        null
+                    );
+                    if (formato.equalsIgnoreCase("excel")) {
+                        reportBytes = reporteService.exportarExperienciasLaboralesAgrupadasExcel(agrupado);
+                    } else {
+                        reportBytes = reporteService.exportarExperienciasLaboralesAgrupadasPDF(agrupado);
+                    }
+                    filename = "experiencias_laborales_" + LocalDate.now().format(DateTimeFormatter.ISO_DATE);
                     break;
                 default:
                     return ResponseEntity.badRequest().build();
@@ -579,6 +596,143 @@ public class ReporteController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    // Endpoint para exportar reportes directamente (sin guardar)
+    @GetMapping("/exportar")
+    public void exportarReporte(
+            HttpServletResponse response,
+            @RequestParam String type,
+            @RequestParam(required = false) String carrera,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String sede,
+            @RequestParam(defaultValue = "pdf") String formato) throws IOException {
+
+        System.out.println("[EXPORTAR] Parámetros recibidos:");
+        System.out.println("[EXPORTAR] type: " + type);
+        System.out.println("[EXPORTAR] carrera: " + carrera);
+        System.out.println("[EXPORTAR] fechaInicio: " + fechaInicio);
+        System.out.println("[EXPORTAR] fechaFin: " + fechaFin);
+        System.out.println("[EXPORTAR] estado: " + estado);
+        System.out.println("[EXPORTAR] sede: " + sede);
+        System.out.println("[EXPORTAR] formato: " + formato);
+
+        try {
+            Integer yearInicio = fechaInicio != null ? fechaInicio.getYear() : null;
+            Integer yearFin = fechaFin != null ? fechaFin.getYear() : null;
+
+            // Configurar headers de respuesta
+            response.setContentType(formato.equalsIgnoreCase("excel") || formato.equalsIgnoreCase("xlsx") ?
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" :
+                    "application/pdf");
+
+            String timestamp = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            String filename = type + "_" + timestamp;
+            String extension = formato.equalsIgnoreCase("excel") || formato.equalsIgnoreCase("xlsx") ? ".xlsx" : ".pdf";
+            String headerValue = "attachment; filename=" + filename + extension;
+            response.setHeader("Content-Disposition", headerValue);
+
+            byte[] reportBytes;
+
+            switch (type) {
+                case "lista_egresados":
+                case "egresados":
+                    List<EgresadoDTO> egresados = egresadoService.findAllEgresadosFiltered(
+                            carrera, fechaInicio, fechaFin, estado, sede);
+                    System.out.println("[EXPORTAR] Egresados encontrados: " + egresados.size());
+                    reportBytes = reporteService.exportarEgresadosBytes(egresados, formato);
+                    break;
+                case "empleabilidad":
+                    List<Object[]> datosEmpleabilidad = egresadoRepository.countEmpleabilidadPorCarrera(carrera, yearInicio, yearFin);
+                    // Aplicar filtro de sede si es necesario
+                    if (sede != null && !sede.isEmpty() && !"all".equalsIgnoreCase(sede)) {
+                        datosEmpleabilidad = aplicarFiltroSede(datosEmpleabilidad, sede);
+                    }
+                    System.out.println("[EXPORTAR] Datos empleabilidad: " + datosEmpleabilidad.size());
+                    reportBytes = reporteService.generarReporteEmpleabilidad(datosEmpleabilidad, formato);
+                    break;
+                case "genero":
+                    List<Object[]> datosGenero = egresadoRepository.countByGenero(carrera, yearInicio, yearFin);
+                    // Aplicar filtro de sede si es necesario
+                    if (sede != null && !sede.isEmpty() && !"all".equalsIgnoreCase(sede)) {
+                        datosGenero = aplicarFiltroSede(datosGenero, sede);
+                    }
+                    System.out.println("[EXPORTAR] Datos género: " + datosGenero.size());
+                    reportBytes = reporteService.generarReporteGenero(datosGenero, formato);
+                    break;
+                case "salarios":
+                    List<Object[]> datosSalarios = egresadoRepository.getSalarioPromedioRealPorCarreraFull(carrera, yearInicio, yearFin, estado, sede);
+                    System.out.println("[EXPORTAR] Datos salarios: " + datosSalarios.size());
+                    reportBytes = reporteService.generarReporteSalarios(datosSalarios, formato);
+                    break;
+                case "satisfaccion":
+                    List<Object[]> datosSatisfaccion = egresadoRepository.averageSatisfaccionByCarreraAgrupadoFiltro(carrera, yearInicio, yearFin, estado, sede);
+                    System.out.println("[EXPORTAR] Datos satisfacción: " + datosSatisfaccion.size());
+                    reportBytes = reporteService.generarReporteSatisfaccion(datosSatisfaccion, formato);
+                    break;
+                case "ubicacion":
+                    // Para ubicación, obtener datos agrupados por sede
+                    List<Object[]> datosUbicacion = egresadoRepository.countBySede(carrera, yearInicio, yearFin);
+                    // Aplicar filtro de sede si es necesario
+                    if (sede != null && !sede.isEmpty() && !"all".equalsIgnoreCase(sede)) {
+                        datosUbicacion = datosUbicacion.stream()
+                            .filter(row -> sede.equalsIgnoreCase((String) row[0]))
+                            .collect(Collectors.toList());
+                    }
+                    System.out.println("[EXPORTAR] Datos ubicación: " + datosUbicacion.size());
+                    reportBytes = reporteService.generarReporteUbicacion(datosUbicacion, formato);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Tipo de reporte no válido: " + type);
+            }
+
+            // Escribir bytes al response
+            response.getOutputStream().write(reportBytes);
+            response.getOutputStream().flush();
+
+        } catch (Exception e) {
+            System.err.println("[EXPORTAR] Error al exportar reporte: " + e.getMessage());
+            e.printStackTrace();
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter().write("Error al generar el reporte: " + e.getMessage());
+        }
+    }
+
+    // Método auxiliar para aplicar filtro de sede a datos generales
+    private List<Object[]> aplicarFiltroSede(List<Object[]> datos, String sede) {
+        // Para datos que no incluyen sede directamente, necesitamos consultar egresados por sede
+        List<EgresadoDTO> egresadosPorSede = egresadoService.findAllEgresadosFiltered(null, null, null, null, sede);
+        Set<String> carrerasEnSede = egresadosPorSede.stream()
+            .map(EgresadoDTO::getCarrera)
+            .collect(Collectors.toSet());
+        
+        return datos.stream()
+            .filter(row -> carrerasEnSede.contains((String) row[0]))
+            .collect(Collectors.toList());
+    }
+
+    @GetMapping("/experiencias-laborales")
+    public ResponseEntity<?> getExperienciasLaborales(
+            @RequestParam(required = false) String carrera,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String sede,
+            @RequestParam(required = false) String fechaInicio,
+            @RequestParam(required = false) String fechaFin,
+            @RequestParam(required = false) String search
+    ) {
+        System.out.println("[EXPERIENCIAS-LABORALES] Endpoint llamado con params: carrera=" + carrera + ", estado=" + estado + ", sede=" + sede + ", fechaInicio=" + fechaInicio + ", fechaFin=" + fechaFin + ", search=" + search);
+        try {
+            List<Map<String, Object>> agrupado = reporteService.obtenerExperienciasLaboralesAgrupadasPorEgresado(
+                carrera, estado, sede, fechaInicio, fechaFin, search
+            );
+            return ResponseEntity.ok(agrupado);
+        } catch (Exception e) {
+            System.out.println("[EXPERIENCIAS-LABORALES] Excepción: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }
 }

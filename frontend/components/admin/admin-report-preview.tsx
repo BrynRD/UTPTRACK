@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import axios from "axios"
 import { ReportExportButton } from "./ReportExportButton"
 import {
@@ -92,6 +92,9 @@ export function AdminReportPreview({
                         break;
                     case "satisfaccion":
                         url = `${API_BASE}/api/reportes/satisfaccion${queryString}`;
+                        break;
+                    case "experiencias_laborales":
+                        url = `${API_BASE}/api/reportes/experiencias-laborales${queryString}`;
                         break;
                     default:
                         setLoading(false)
@@ -359,6 +362,213 @@ export function AdminReportPreview({
                 </div>
             </div>
         )
+    }
+
+    // Hooks para experiencias laborales (siempre definidos, aunque solo se usen si corresponde)
+    // Elimina estos hooks del componente principal:
+    // const [search, setSearch] = useState("");
+    // const filteredData = useMemo(() => {
+    //     if (reportType !== "experiencias_laborales") return data;
+    //     if (!Array.isArray(data)) return [];
+    //     if (!search.trim()) return data;
+    //     return data.filter(item => {
+    //         const eg = item.egresado;
+    //         const texto = `${eg.nombre} ${eg.apellido} ${eg.correo}`.toLowerCase();
+    //         return texto.includes(search.toLowerCase());
+    //     });
+    // }, [data, search, reportType]);
+    // const experienciasPlanas = useMemo(() => {
+    //     if (reportType !== "experiencias_laborales") return [];
+    //     if (!Array.isArray(filteredData)) return [];
+    //     return filteredData.flatMap(item =>
+    //         (item.experiencias || []).map(exp => ({
+    //             ...exp,
+    //             egresado: item.egresado
+    //         }))
+    //     );
+    // }, [filteredData, reportType]);
+    // const empresaCount: Record<string, number> = useMemo(() => {
+    //     if (reportType !== "experiencias_laborales") return {};
+    //     const count: Record<string, number> = {};
+    //     experienciasPlanas.forEach(exp => {
+    //         if (exp.empresa) count[exp.empresa] = (count[exp.empresa] || 0) + 1;
+    //     });
+    //     return count;
+    // }, [experienciasPlanas, reportType]);
+    // const empresasTop = useMemo(() => {
+    //     if (reportType !== "experiencias_laborales") return [];
+    //     return Object.entries(empresaCount)
+    //         .sort((a, b) => b[1] - a[1])
+    //         .slice(0, 10);
+    // }, [empresaCount, reportType]);
+    // const trabajosActuales = useMemo(() => {
+    //     if (reportType !== "experiencias_laborales") return 0;
+    //     return experienciasPlanas.filter(exp => !exp.fechaFin).length;
+    // }, [experienciasPlanas, reportType]);
+    // const trabajosFinalizados = useMemo(() => {
+    //     if (reportType !== "experiencias_laborales") return 0;
+    //     return experienciasPlanas.filter(exp => exp.fechaFin).length;
+    // }, [experienciasPlanas, reportType]);
+
+    function ExperienciasLaboralesPreview({ data, startDate, endDate, career, estado, sede, onExported }: any) {
+        const [search, setSearch] = useState("");
+        // Filtrar egresados por búsqueda (nombre, apellido, correo)
+        const filteredData = useMemo(() => {
+            if (!Array.isArray(data)) return [];
+            if (!search.trim()) return data;
+            return data.filter((item: any) => {
+                const eg = item.egresado;
+                // Manejar posibles undefined/null y limpiar espacios
+                const nombre = (eg?.nombre || "").toString().toLowerCase().trim();
+                const apellido = (eg?.apellido || "").toString().toLowerCase().trim();
+                const correo = (eg?.correo || "").toString().toLowerCase().trim();
+                const texto = `${nombre} ${apellido} ${correo}`;
+                return texto.includes(search.toLowerCase().trim());
+            });
+        }, [data, search]);
+        // Array plano de experiencias laborales para gráficos
+        const experienciasPlanas = useMemo(() => {
+            if (!Array.isArray(filteredData)) return [];
+            return filteredData.flatMap((item: any) =>
+                (item.experiencias || []).map((exp: any) => ({
+                    ...exp,
+                    egresado: item.egresado
+                }))
+            );
+        }, [filteredData]);
+        // Gráfico: Empresas que más contratan (top 10)
+        const empresasTopData = useMemo(() => {
+            const count: Record<string, number> = {};
+            experienciasPlanas.forEach((exp: any) => {
+                if (exp.empresa) count[exp.empresa] = (count[exp.empresa] || 0) + 1;
+            });
+            return Object.entries(count)
+                .map(([empresa, cantidad]) => ({ empresa, cantidad }))
+                .sort((a, b) => b.cantidad - a.cantidad)
+                .slice(0, 10);
+        }, [experienciasPlanas]);
+        // Gráfico: Trabajos actuales vs finalizados
+        const trabajosActuales = useMemo(() => {
+            return experienciasPlanas.filter((exp: any) => !exp.fechaFin).length;
+        }, [experienciasPlanas]);
+        const trabajosFinalizados = useMemo(() => {
+            return experienciasPlanas.filter((exp: any) => exp.fechaFin).length;
+        }, [experienciasPlanas]);
+        if (!Array.isArray(filteredData) || filteredData.length === 0) {
+            return (
+                <div className="flex h-[400px] items-center justify-center">
+                    <p className="text-sm text-muted-foreground">No hay experiencias laborales para mostrar.</p>
+                </div>
+            );
+        }
+        return (
+            <div className="h-[400px] overflow-y-auto">
+                {/* Barra de búsqueda y exportar */}
+                <div className="mb-2 flex items-center gap-2">
+                    <input
+                        type="text"
+                        className="border rounded px-2 py-1 text-sm"
+                        placeholder="Buscar egresado por nombre, apellido o correo..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                    <ReportExportButton
+                        reportType="experiencias_laborales"
+                        data={filteredData}
+                        startDate={startDate}
+                        endDate={endDate}
+                        career={career}
+                        estado={estado}
+                        sede={sede}
+                        onExported={onExported}
+                    />
+                </div>
+                {/* Gráfico de empresas que más contratan */}
+                <div className="mb-4 bg-white rounded shadow p-4">
+                    <h3 className="font-semibold mb-2 text-sm">Empresas que más contratan</h3>
+                    {empresasTopData.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Sin datos</p>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={220}>
+                            <BarChart
+                                data={empresasTopData}
+                                layout="vertical"
+                                margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis type="number" allowDecimals={false} />
+                                <YAxis dataKey="empresa" type="category" width={150} />
+                                <Tooltip />
+                                <Legend />
+                                <Bar dataKey="cantidad" name="Experiencias" fill="#5b36f2" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+                {/* Gráfico trabajos actuales vs finalizados */}
+                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white rounded shadow p-4">
+                        <h3 className="font-semibold mb-2 text-sm">Trabajos actuales vs finalizados</h3>
+                        <ul className="text-xs">
+                            <li>Actuales: {trabajosActuales}</li>
+                            <li>Finalizados: {trabajosFinalizados}</li>
+                        </ul>
+                    </div>
+                </div>
+                {/* Vista previa agrupada mejorada */}
+                <div className="space-y-6">
+                    {filteredData.map((item: any, i: number) => (
+                        item.egresado ? (
+                            <div key={item.egresado.id || i} className="mb-2 border border-gray-200 rounded-lg shadow-sm bg-white">
+                                <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-white rounded-t-lg flex flex-col md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <span className="block text-lg font-bold text-blue-900">{item.egresado.nombre} {item.egresado.apellido}</span>
+                                        <span className="block text-sm text-blue-700 font-medium">{item.egresado.carrera}</span>
+                                        <span className="block text-xs text-gray-500">{item.egresado.correo}</span>
+                                    </div>
+                                    <div className="mt-2 md:mt-0 flex flex-wrap gap-2 text-xs text-gray-600">
+                                        <span>Sede: <b>{item.egresado.sede}</b></span>
+                                        <span>Año graduación: <b>{item.egresado.anoGraduacion || item.egresado.ano_graduacion}</b></span>
+                                        <span>Estado laboral: <b>{item.egresado.estadoLaboral || item.egresado.estado_laboral}</b></span>
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto px-4 pb-4">
+                                    <table className="min-w-full text-xs border-separate border-spacing-y-1">
+                                        <thead>
+                                            <tr className="bg-blue-50">
+                                                <th className="border px-2 py-1 rounded-tl">Empresa</th>
+                                                <th className="border px-2 py-1">Puesto</th>
+                                                <th className="border px-2 py-1">Fecha Inicio</th>
+                                                <th className="border px-2 py-1">Fecha Fin</th>
+                                                <th className="border px-2 py-1">Salario</th>
+                                                <th className="border px-2 py-1 rounded-tr">Descripción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {item.experiencias.map((exp: any, j: number) => (
+                                                <tr key={exp.id || j} className="bg-white hover:bg-blue-50 transition">
+                                                    <td className="border px-2 py-1 font-medium text-gray-800">{exp.empresa}</td>
+                                                    <td className="border px-2 py-1">{exp.puesto}</td>
+                                                    <td className="border px-2 py-1">{exp.fechaInicio ? new Date(exp.fechaInicio).toLocaleDateString() : ""}</td>
+                                                    <td className="border px-2 py-1">{exp.fechaFin ? new Date(exp.fechaFin).toLocaleDateString() : ""}</td>
+                                                    <td className="border px-2 py-1">{exp.salario}</td>
+                                                    <td className="border px-2 py-1">{exp.descripcion}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ) : null
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // Render principal: solo decide qué subcomponente mostrar
+    if (reportType === "experiencias_laborales") {
+        return <ExperienciasLaboralesPreview data={data} startDate={startDate} endDate={endDate} career={career} estado={estado} sede={sede} onExported={onExported} />;
     }
 
     return (

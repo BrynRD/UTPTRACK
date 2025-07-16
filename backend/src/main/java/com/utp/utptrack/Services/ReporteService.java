@@ -21,14 +21,21 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import com.utp.utptrack.Models.ExperienciaLaboral;
+import com.utp.utptrack.Models.Egresado;
+import com.utp.utptrack.Repositories.ExperienciaLaboralRepository;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class ReporteService {
 
     private final EgresadoService egresadoService;
+    private final ExperienciaLaboralRepository experienciaLaboralRepository;
 
-    public ReporteService(EgresadoService egresadoService) {
+    public ReporteService(EgresadoService egresadoService, ExperienciaLaboralRepository experienciaLaboralRepository) {
         this.egresadoService = egresadoService;
+        this.experienciaLaboralRepository = experienciaLaboralRepository;
     }
 
     // Método existente para exportar egresados
@@ -1170,6 +1177,355 @@ public class ReporteService {
 
         } catch (DocumentException e) {
             throw new IOException("Error al generar el documento PDF", e);
+        }
+    }
+
+    // Método para generar reporte de ubicación/distribución geográfica
+    public byte[] generarReporteUbicacion(List<Object[]> datosUbicacion, String formato) throws IOException {
+        if (formato.equalsIgnoreCase("excel") || formato.equalsIgnoreCase("xlsx")) {
+            return generarReporteUbicacionExcel(datosUbicacion);
+        } else {
+            return generarReporteUbicacionPDF(datosUbicacion);
+        }
+    }
+
+    private byte[] generarReporteUbicacionExcel(List<Object[]> datosUbicacion) throws IOException {
+        try (Workbook libro = new XSSFWorkbook()) {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+            Sheet hoja = libro.createSheet("Distribución Geográfica");
+
+            // Crear estilo para el encabezado
+            CellStyle estiloEncabezado = libro.createCellStyle();
+            org.apache.poi.ss.usermodel.Font fuenteEncabezado = libro.createFont();
+            fuenteEncabezado.setBold(true);
+            fuenteEncabezado.setColor(IndexedColors.WHITE.getIndex());
+            estiloEncabezado.setFont(fuenteEncabezado);
+            estiloEncabezado.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+            estiloEncabezado.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            // Encabezados
+            Row filaEncabezado = hoja.createRow(0);
+            Cell celdaSede = filaEncabezado.createCell(0);
+            celdaSede.setCellValue("Sede");
+            celdaSede.setCellStyle(estiloEncabezado);
+
+            Cell celdaCantidad = filaEncabezado.createCell(1);
+            celdaCantidad.setCellValue("Cantidad de Egresados");
+            celdaCantidad.setCellStyle(estiloEncabezado);
+
+            // Datos
+            int filaIndex = 1;
+            for (Object[] fila : datosUbicacion) {
+                Row filaDatos = hoja.createRow(filaIndex++);
+                filaDatos.createCell(0).setCellValue(fila[0] != null ? fila[0].toString() : "Sin sede");
+                filaDatos.createCell(1).setCellValue(fila[1] != null ? ((Number) fila[1]).doubleValue() : 0);
+            }
+
+            // Ajustar ancho de columnas
+            hoja.autoSizeColumn(0);
+            hoja.autoSizeColumn(1);
+
+            libro.write(outputStream);
+            return outputStream.toByteArray();
+        }
+    }
+
+    private byte[] generarReporteUbicacionPDF(List<Object[]> datosUbicacion) throws IOException {
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            Document documento = new Document(PageSize.A4);
+            PdfWriter.getInstance(documento, outputStream);
+
+            documento.open();
+
+            // Título
+            com.itextpdf.text.Font tituloFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
+            Paragraph titulo = new Paragraph("Reporte de Distribución Geográfica", tituloFont);
+            titulo.setAlignment(Element.ALIGN_CENTER);
+            titulo.setSpacingAfter(20);
+            documento.add(titulo);
+
+            // Fecha de generación
+            com.itextpdf.text.Font fechaFont = FontFactory.getFont(FontFactory.HELVETICA, 10, BaseColor.DARK_GRAY);
+            Paragraph fecha = new Paragraph("Fecha de generación: " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), fechaFont);
+            fecha.setAlignment(Element.ALIGN_RIGHT);
+            fecha.setSpacingAfter(20);
+            documento.add(fecha);
+
+            // Tabla
+            PdfPTable tabla = new PdfPTable(2);
+            tabla.setWidthPercentage(60);
+            tabla.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+            // Encabezados
+            com.itextpdf.text.Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.WHITE);
+            PdfPCell cellHeader = new PdfPCell();
+            cellHeader.setBackgroundColor(new BaseColor(91, 54, 242));
+            cellHeader.setPadding(8);
+            cellHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+            cellHeader.setPhrase(new Phrase("Sede", headerFont));
+            tabla.addCell(cellHeader);
+
+            cellHeader.setPhrase(new Phrase("Cantidad de Egresados", headerFont));
+            tabla.addCell(cellHeader);
+
+            // Datos
+            com.itextpdf.text.Font dataFont = FontFactory.getFont(FontFactory.HELVETICA, 11);
+            for (Object[] fila : datosUbicacion) {
+                PdfPCell celdaSede = new PdfPCell(new Phrase(
+                    fila[0] != null ? fila[0].toString() : "Sin sede", dataFont));
+                celdaSede.setPadding(6);
+                celdaSede.setHorizontalAlignment(Element.ALIGN_LEFT);
+                tabla.addCell(celdaSede);
+
+                PdfPCell celdaCantidad = new PdfPCell(new Phrase(
+                    fila[1] != null ? fila[1].toString() : "0", dataFont));
+                celdaCantidad.setPadding(6);
+                celdaCantidad.setHorizontalAlignment(Element.ALIGN_CENTER);
+                tabla.addCell(celdaCantidad);
+            }
+
+            documento.add(tabla);
+
+            // Resumen
+            int totalEgresados = datosUbicacion.stream()
+                .mapToInt(fila -> fila[1] != null ? ((Number) fila[1]).intValue() : 0)
+                .sum();
+
+            Paragraph resumen = new Paragraph("Total de egresados: " + totalEgresados, fechaFont);
+            resumen.setSpacingBefore(20);
+            resumen.setAlignment(Element.ALIGN_CENTER);
+            documento.add(resumen);
+
+            documento.close();
+            return outputStream.toByteArray();
+
+        } catch (DocumentException e) {
+            throw new IOException("Error al generar el documento PDF", e);
+        }
+    }
+
+    public List<Map<String, Object>> obtenerExperienciasLaboralesFiltradas(
+            String carrera,
+            String estado,
+            String sede,
+            String fechaInicio,
+            String fechaFin,
+            String search
+    ) {
+        java.util.Date fechaInicioDate = null;
+        java.util.Date fechaFinDate = null;
+        try {
+            if (fechaInicio != null && !fechaInicio.isEmpty()) {
+                fechaInicioDate = java.sql.Date.valueOf(fechaInicio);
+            }
+            if (fechaFin != null && !fechaFin.isEmpty()) {
+                fechaFinDate = java.sql.Date.valueOf(fechaFin);
+            }
+        } catch (Exception e) {
+            // Si hay error en el parseo, dejar fechas en null
+        }
+        List<ExperienciaLaboral> experiencias = experienciaLaboralRepository.findByFiltersForReport(
+                (carrera != null && !carrera.equals("all")) ? carrera : null,
+                (estado != null && !estado.equals("all")) ? estado : null,
+                (sede != null && !sede.equals("all")) ? sede : null,
+                fechaInicioDate,
+                fechaFinDate,
+                (search != null && !search.isEmpty()) ? search : null
+        );
+        List<Map<String, Object>> resultado = new java.util.ArrayList<>();
+        for (ExperienciaLaboral exp : experiencias) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", exp.getId());
+            map.put("empresa", exp.getEmpresa());
+            map.put("puesto", exp.getPuesto());
+            map.put("fechaInicio", exp.getFechaInicio());
+            map.put("fechaFin", exp.getFechaFin());
+            map.put("salario", exp.getSalario());
+            map.put("descripcion", exp.getDescripcion());
+            Egresado eg = exp.getEgresado();
+            if (eg != null) {
+                map.put("egresadoId", eg.getId());
+                map.put("nombre", eg.getNombre());
+                map.put("apellido", eg.getApellido());
+                map.put("carrera", eg.getCarrera());
+                map.put("sede", eg.getSede());
+                map.put("anoGraduacion", eg.getAnoGraduacion());
+                map.put("estadoLaboral", eg.getEstadoLaboral());
+                map.put("correo", eg.getCorreo());
+            }
+            resultado.add(map);
+        }
+        return resultado;
+    }
+
+    public List<Map<String, Object>> obtenerExperienciasLaboralesAgrupadasPorEgresado(
+            String carrera,
+            String estado,
+            String sede,
+            String fechaInicio,
+            String fechaFin,
+            String search
+    ) {
+        java.util.Date fechaInicioDate = null;
+        java.util.Date fechaFinDate = null;
+        try {
+            if (fechaInicio != null && !fechaInicio.isEmpty()) {
+                fechaInicioDate = java.sql.Date.valueOf(fechaInicio);
+            }
+            if (fechaFin != null && !fechaFin.isEmpty()) {
+                fechaFinDate = java.sql.Date.valueOf(fechaFin);
+            }
+        } catch (Exception e) {
+            // Si hay error en el parseo, dejar fechas en null
+        }
+        List<ExperienciaLaboral> experiencias = experienciaLaboralRepository.findByFiltersForReport(
+                (carrera != null && !carrera.equals("all")) ? carrera : null,
+                (estado != null && !estado.equals("all")) ? estado : null,
+                (sede != null && !sede.equals("all")) ? sede : null,
+                fechaInicioDate,
+                fechaFinDate,
+                (search != null && !search.isEmpty()) ? search : null
+        );
+        // Agrupar por egresadoId
+        Map<String, Map<String, Object>> agrupado = new java.util.LinkedHashMap<>();
+        for (ExperienciaLaboral exp : experiencias) {
+            Egresado eg = exp.getEgresado();
+            if (eg == null) continue;
+            String egresadoId = eg.getId();
+            if (!agrupado.containsKey(egresadoId)) {
+                Map<String, Object> egresadoMap = new HashMap<>();
+                Map<String, Object> egresadoInfo = new HashMap<>();
+                egresadoInfo.put("id", eg.getId());
+                egresadoInfo.put("nombre", eg.getNombre());
+                egresadoInfo.put("apellido", eg.getApellido());
+                egresadoInfo.put("carrera", eg.getCarrera());
+                egresadoInfo.put("correo", eg.getCorreo());
+                egresadoInfo.put("sede", eg.getSede());
+                egresadoInfo.put("anoGraduacion", eg.getAnoGraduacion());
+                egresadoInfo.put("estadoLaboral", eg.getEstadoLaboral());
+                egresadoMap.put("egresado", egresadoInfo);
+                egresadoMap.put("experiencias", new java.util.ArrayList<Map<String, Object>>());
+                agrupado.put(egresadoId, egresadoMap);
+            }
+            Map<String, Object> expMap = new HashMap<>();
+            expMap.put("id", exp.getId());
+            expMap.put("empresa", exp.getEmpresa());
+            expMap.put("puesto", exp.getPuesto());
+            expMap.put("fechaInicio", exp.getFechaInicio());
+            expMap.put("fechaFin", exp.getFechaFin());
+            expMap.put("salario", exp.getSalario());
+            expMap.put("descripcion", exp.getDescripcion());
+            ((List<Map<String, Object>>) agrupado.get(egresadoId).get("experiencias")).add(expMap);
+        }
+        return new java.util.ArrayList<>(agrupado.values());
+    }
+
+    public byte[] exportarExperienciasLaboralesAgrupadasExcel(List<Map<String, Object>> agrupado) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Experiencias Laborales");
+            // Cabeceras
+            String[] headers = {"Nombre Completo", "Carrera", "Correo", "Sede", "Año Graduación", "Estado Laboral", "Experiencias Laborales"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+            // Llenar datos
+            int rowNum = 1;
+            for (Map<String, Object> item : agrupado) {
+                Map<String, Object> egresado = (Map<String, Object>) item.get("egresado");
+                List<Map<String, Object>> experiencias = (List<Map<String, Object>>) item.get("experiencias");
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue((egresado.get("nombre") != null ? egresado.get("nombre") : "") + " " + (egresado.get("apellido") != null ? egresado.get("apellido") : ""));
+                row.createCell(1).setCellValue(egresado.get("carrera") != null ? egresado.get("carrera").toString() : "");
+                row.createCell(2).setCellValue(egresado.get("correo") != null ? egresado.get("correo").toString() : "");
+                row.createCell(3).setCellValue(egresado.get("sede") != null ? egresado.get("sede").toString() : "");
+                row.createCell(4).setCellValue(egresado.get("anoGraduacion") != null ? egresado.get("anoGraduacion").toString() : "");
+                row.createCell(5).setCellValue(egresado.get("estadoLaboral") != null ? egresado.get("estadoLaboral").toString() : "");
+                // Experiencias laborales concatenadas
+                StringBuilder expStr = new StringBuilder();
+                for (Map<String, Object> exp : experiencias) {
+                    expStr.append(
+                        (exp.get("empresa") != null ? exp.get("empresa") : "") + " - " +
+                        (exp.get("puesto") != null ? exp.get("puesto") : "") +
+                        " (" +
+                        (exp.get("fechaInicio") != null ? exp.get("fechaInicio").toString() : "") +
+                        " a " +
+                        (exp.get("fechaFin") != null ? exp.get("fechaFin").toString() : "Presente") +
+                        (exp.get("salario") != null ? ", S/ " + exp.get("salario") : "") +
+                        ")"
+                    );
+                    expStr.append("; ");
+                }
+                row.createCell(6).setCellValue(expStr.toString().trim());
+            }
+            // Auto-ajustar ancho de columnas
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            workbook.write(baos);
+            return baos.toByteArray();
+        }
+    }
+
+    public byte[] exportarExperienciasLaboralesAgrupadasPDF(List<Map<String, Object>> agrupado) throws IOException {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Document document = new Document(PageSize.A4.rotate());
+            PdfWriter.getInstance(document, baos);
+            document.open();
+            // Título
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
+            Paragraph title = new Paragraph("Reporte de Experiencias Laborales Agrupadas", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(20);
+            document.add(title);
+            // Por cada egresado
+            Font egresadoFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+            Font expFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
+            for (Map<String, Object> item : agrupado) {
+                Map<String, Object> egresado = (Map<String, Object>) item.get("egresado");
+                List<Map<String, Object>> experiencias = (List<Map<String, Object>>) item.get("experiencias");
+                Paragraph egresadoInfo = new Paragraph(
+                    (egresado.get("nombre") != null ? egresado.get("nombre") : "") + " " +
+                    (egresado.get("apellido") != null ? egresado.get("apellido") : "") +
+                    " | Carrera: " + (egresado.get("carrera") != null ? egresado.get("carrera") : "") +
+                    " | Correo: " + (egresado.get("correo") != null ? egresado.get("correo") : "") +
+                    " | Sede: " + (egresado.get("sede") != null ? egresado.get("sede") : "") +
+                    " | Año Graduación: " + (egresado.get("anoGraduacion") != null ? egresado.get("anoGraduacion") : "") +
+                    " | Estado Laboral: " + (egresado.get("estadoLaboral") != null ? egresado.get("estadoLaboral") : ""),
+                    egresadoFont
+                );
+                egresadoInfo.setSpacingBefore(10);
+                egresadoInfo.setSpacingAfter(5);
+                document.add(egresadoInfo);
+                // Tabla de experiencias
+                PdfPTable tabla = new PdfPTable(5);
+                tabla.setWidthPercentage(100);
+                tabla.setSpacingBefore(5);
+                tabla.setSpacingAfter(10);
+                tabla.addCell(new Phrase("Empresa", egresadoFont));
+                tabla.addCell(new Phrase("Puesto", egresadoFont));
+                tabla.addCell(new Phrase("Fecha Inicio", egresadoFont));
+                tabla.addCell(new Phrase("Fecha Fin", egresadoFont));
+                tabla.addCell(new Phrase("Salario", egresadoFont));
+                for (Map<String, Object> exp : experiencias) {
+                    tabla.addCell(new Phrase(exp.get("empresa") != null ? exp.get("empresa").toString() : "", expFont));
+                    tabla.addCell(new Phrase(exp.get("puesto") != null ? exp.get("puesto").toString() : "", expFont));
+                    tabla.addCell(new Phrase(exp.get("fechaInicio") != null ? exp.get("fechaInicio").toString() : "", expFont));
+                    tabla.addCell(new Phrase(exp.get("fechaFin") != null ? exp.get("fechaFin").toString() : "Presente", expFont));
+                    tabla.addCell(new Phrase(exp.get("salario") != null ? ("S/ " + exp.get("salario")) : "", expFont));
+                }
+                document.add(tabla);
+            }
+            document.close();
+            return baos.toByteArray();
+        } catch (DocumentException e) {
+            throw new IOException("Error al generar el PDF de experiencias laborales agrupadas", e);
         }
     }
 }
