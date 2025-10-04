@@ -12,6 +12,44 @@ Sistema integral para el seguimiento y análisis de egresados de la Universidad 
 - **Autenticación JWT** con roles de usuario
 - **Exportación** de datos en PDF y Excel
 
+## 📱 Capturas de Pantalla
+
+### 👑 Panel Administrativo
+
+#### Dashboard Ejecutivo
+Vista principal del administrador con KPIs, gráficos interactivos y estadísticas en tiempo real.
+
+![Dashboard Administrativo](frontend/public/dashboard.png)
+
+#### Gestión de Egresados
+Lista completa de egresados con funciones de búsqueda, filtrado, edición y gestión de usuarios.
+
+![Gestión de Egresados](frontend/public/egresados.png)
+
+#### Sistema de Reportes
+Generación de reportes personalizados con vista previa y exportación en PDF/Excel.
+
+![Sistema de Reportes](frontend/public/reportes.png)
+
+### 🎓 Panel de Egresado
+
+#### Dashboard Personal
+Vista personalizada para egresados con sus datos laborales y estadísticas personales.
+
+![Dashboard del Egresado](frontend/public/dashboardalumno.png)
+
+#### Gestión de Perfil
+Los egresados pueden actualizar su información personal, académica y laboral.
+
+**Información Personal:**
+![Perfil - Datos Personales](frontend/public/perfil1.png)
+
+**Experiencias Laborales:**
+![Perfil - Experiencia Laborales](frontend/public/perfil2.png)
+
+**Seguridad 2fa:**
+![Perfil - Seguridad2fa](frontend/public/perfil3.png)
+
 ## 🏗️ Arquitectura
 
 ### Frontend
@@ -38,121 +76,91 @@ Sistema integral para el seguimiento y análisis de egresados de la Universidad 
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/tu-usuario/utptrack.git
-cd utptrack
+git clone https://github.com/BrynRD/UTPTRACK.git
+cd UTPTRACK
 ```
 
 ### 2. Configurar Backend
 ```bash
-cd backend
-
 # Configurar base de datos en application.properties
-# Ejecutar las migraciones SQL (UTPTRACK.sql)
-
-# Instalar dependencias y ejecutar
+cd backend
 ./mvnw spring-boot:run
 ```
 
 ### 3. Configurar Frontend
 ```bash
+# En otra terminal
 cd frontend
-
-# Instalar dependencias
 npm install
-# o
-pnpm install
-
-# Ejecutar en desarrollo
 npm run dev
-# o 
-pnpm dev
 ```
 
-### 4. Acceder a la aplicación
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8080
+### 4. Configurar Base de Datos
+- Crear base de datos `utptrack`
+- Ejecutar el script `UTPTRACK.sql`
+- Ajustar credenciales en `backend/src/main/resources/application.properties`
 
-## 🗂️ Estructura del Proyecto
+
+## 📊 Funcionalidades Principales
+
+### Para Administradores
+- ✅ Dashboard ejecutivo con KPIs en tiempo real
+- ✅ Gestión completa de egresados (CRUD)
+- ✅ Generación de reportes personalizados
+- ✅ Visualización geográfica con mapas interactivos
+- ✅ Exportación de datos en PDF y Excel
+- ✅ Sistema de autenticación con 2FA
+- ✅ Gestión de roles y permisos
+
+### Para Egresados
+- ✅ Dashboard personal con estadísticas
+- ✅ Actualización de perfil completo
+- ✅ Gestión de información laboral
+- ✅ Historial de experiencias profesionales
+- ✅ Configuración de seguridad personal
+- ✅ Visualización de datos personales
+
+## 🔧 Tecnologías Utilizadas
+
+### Frontend
+- **Next.js 15**: Framework React con SSR
+- **TypeScript**: Tipado estático
+- **Tailwind CSS**: Framework de estilos
+- **shadcn/ui**: Componentes UI modernos
+- **Recharts**: Gráficos y visualizaciones
+- **Axios**: Cliente HTTP
+- **React Context**: Gestión de estado
+
+### Backend
+- **Spring Boot 3**: Framework Java
+- **Spring Security**: Autenticación y autorización
+- **JWT**: Tokens de acceso
+- **JPA/Hibernate**: ORM
+- **MySQL**: Base de datos relacional
+- **Maven**: Gestión de dependencias
+- **Apache POI**: Generación de Excel
+- **iText/PDFBox**: Generación de PDF
+
+## 📁 Estructura del Proyecto
 
 ```
 UTPTRACK/
 ├── frontend/                 # Aplicación Next.js
-│   ├── app/                  # App Router de Next.js
-│   │   ├── admin/           # Páginas de administración
-│   │   ├── dashboard/       # Dashboard del usuario
-│   │   └── login/           # Autenticación
-│   ├── components/          # Componentes React reutilizables
-│   │   ├── admin/           # Componentes de administración
-│   │   ├── dashboard/       # Componentes del dashboard
-│   │   └── ui/              # Componentes UI base
-│   └── hooks/               # Hooks personalizados
+│   ├── app/                 # Pages y layouts
+│   ├── components/          # Componentes React
+│   ├── hooks/               # Hooks personalizados
+│   └── public/              # Recursos estáticos
 ├── backend/                 # Aplicación Spring Boot
-│   └── src/
-│       ├── main/java/com/utp/utptrack/
-│       │   ├── Controllers/ # Controladores REST
-│       │   ├── Services/    # Lógica de negocio
-│       │   ├── Models/      # Entidades JPA
-│       │   ├── Repositories/# Repositorios de datos
-│       │   └── Security/    # Configuración de seguridad
-│       └── resources/       # Configuraciones y SQL
-└── docs/                    # Documentación
+│   ├── src/main/java/       # Código fuente Java
+│   ├── src/main/resources/  # Configuración
+│   └── exports/             # Reportes generados
+└── UTPTRACK.sql            # Script de base de datos
 ```
 
-## 🔐 Usuarios por Defecto
-
-### Administrador
-- **Usuario**: admin
-- **Contraseña**: admin123
-
-### Egresado
-- **Usuario**: egresado
-- **Contraseña**: egresado123
-
-## 📊 Funcionalidades
-
-### Dashboard Administrativo
-- KPIs de empleabilidad en tiempo real
-- Gráficos de empleabilidad por carrera
-- Mapa geográfico interactivo de distribución de egresados
-- Tendencias temporales de empleabilidad
-- Lista de encuestas recientes
-
-### Gestión de Egresados
-- Crear, editar y eliminar perfiles de egresados
-- Búsqueda y filtrado avanzado
-- Gestión de roles y permisos
-- Activación/desactivación de cuentas
-
-### Reportes y Estadísticas
-- Generación de reportes personalizados
-- Filtros por carrera, sede, período
-- Exportación en múltiples formatos (PDF, Excel)
-- Visualizaciones interactivas
-
-
-## 🛠️ Tecnologías Utilizadas
-
-### Frontend
-- Next.js 15
-- React 18
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
-- Recharts
-- Lucide Icons
-
-### Backend
-- Spring Boot 3
-- Spring Security
-- Spring Data JPA
-- JWT
-- MySQL/PostgreSQL
-- Maven
-
-## 🤝 Contribuir
+## 🤝 Contribución
 
 1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+2. Crea tu rama de feature (`git checkout -b feature/AmazingFeature`)
 3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
